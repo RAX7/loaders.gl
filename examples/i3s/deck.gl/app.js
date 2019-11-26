@@ -6,7 +6,9 @@ import {StaticMap} from 'react-map-gl';
 
 import DeckGL from '@deck.gl/react';
 import {MapController, FlyToInterpolator} from '@deck.gl/core';
-import I3S3DLayer from './i3s-3d-layer';
+import {I3S3DLayer} from './i3s-3d-layer';
+import {StatsWidget} from '@probe.gl/stats-widget';
+import {lumaStats} from '@luma.gl/core';
 
 import {centerMap, cesiumRender, cesiumUnload} from './cesium';
 
@@ -34,7 +36,7 @@ const INITIAL_VIEW_STATE = {
 export default class App extends PureComponent {
   constructor(props) {
     super(props);
-
+    this._tilesetStatsWidget = null;
     this.state = {
       renderCesium: false,
       layerMap: {},
@@ -47,16 +49,35 @@ export default class App extends PureComponent {
     const parsedUrl = new URL(window.location.href);
     const renderCesium = parsedUrl.searchParams.get('cesium');
     this.setState({renderCesium});
+
+    this._memWidget = new StatsWidget(lumaStats.get('Memory Usage'), {
+      framesPerUpdate: 1,
+      formatters: {
+        'GPU Memory': 'memory',
+        'Buffer Memory': 'memory',
+        'Renderbuffer Memory': 'memory',
+        'Texture Memory': 'memory'
+      },
+      container: this._statsWidgetContainer
+    });
+    this._tilesetStatsWidget = new StatsWidget(null, {
+      container: this._statsWidgetContainer
+    });
+  }
+
+  // Updates stats, called every frame
+  _updateStatWidgets() {
+    this._memWidget.update();
+    this._tilesetStatsWidget.update();
   }
 
   _onTilesetLoad(tileset) {
-    const bbox = tileset.json.store.extent;
-    const longitude = (bbox[0] + bbox[2]) / 2;
-    const latitude = (bbox[1] + bbox[3]) / 2;
+    const {zoom, cartographicCenter} = tileset;
+    const [longitude, latitude] = cartographicCenter;
 
     const viewState = {
       ...this.state.viewState,
-      zoom: 14,
+      zoom,
       longitude,
       latitude
     };
@@ -70,6 +91,7 @@ export default class App extends PureComponent {
       }
     });
 
+    this._tilesetStatsWidget.setStats(tileset.stats);
     // render with cesium
     if (this.state.renderCesium) {
       centerMap(viewState);
@@ -108,17 +130,36 @@ export default class App extends PureComponent {
     ];
   }
 
+  _renderStats() {
+    // TODO - too verbose, get more default styling from stats widget?
+    return (
+      <div
+        style={{
+          position: 'absolute',
+          padding: 12,
+          zIndex: '10000',
+          maxWidth: 300,
+          background: '#000',
+          color: '#fff'
+        }}
+        ref={_ => (this._statsWidgetContainer = _)}
+      />
+    );
+  }
+
   render() {
     const layers = this._renderLayers();
 
     return (
       <div>
+        {this._renderStats()}
         <DeckGL
           ref={_ => (this._deckRef = _)}
           layers={layers}
           initialViewState={INITIAL_VIEW_STATE}
           onViewStateChange={this._onViewStateChange.bind(this)}
           controller={{type: MapController, maxPitch: 85}}
+          onAfterRender={() => this._updateStatWidgets()}
         >
           <StaticMap
             mapStyle={'mapbox://styles/mapbox/dark-v9'}

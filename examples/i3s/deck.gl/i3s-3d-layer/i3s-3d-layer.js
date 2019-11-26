@@ -4,12 +4,12 @@ import {Vector3} from 'math.gl';
 import {COORDINATE_SYSTEM, CompositeLayer} from '@deck.gl/core';
 import {SimpleMeshLayer} from '@deck.gl/mesh-layers';
 
-import {I3STileset} from '@loaders.gl/i3s';
+import {I3STileset, I3STileset3D} from '@loaders.gl/i3s';
 import {Geometry} from '@luma.gl/core';
 import GL from '@luma.gl/constants';
+import {getFrameState} from './get-frame-state';
 
 const scratchOffset = new Vector3(0, 0, 0);
-const MAX_LAYERS = 30;
 
 const defaultProps = {
   data: null,
@@ -18,6 +18,10 @@ const defaultProps = {
   onTileLoad: tileHeader => {},
   onTileUnload: tileHeader => {}
 };
+
+function getRootNodeUrl(tilesetUrl) {
+  return `${tilesetUrl}/nodes/root`;
+}
 
 export default class Tile3DLayer extends CompositeLayer {
   initializeState() {
@@ -31,22 +35,27 @@ export default class Tile3DLayer extends CompositeLayer {
     return changeFlags.somethingChanged;
   }
 
-  async updateState({props, oldProps}) {
+  async updateState({props, oldProps, changeFlags}) {
     if (props.data && props.data !== oldProps.data) {
       await this._loadTileset(props.data);
     }
 
-    const {tileset3d} = this.state;
-    await this._updateTileset(tileset3d);
+    if (changeFlags.viewportChanged) {
+      await this._updateTileset(this.state.tileset3d);
+    }
   }
 
   async _loadTileset(tilesetUrl, fetchOptions) {
     const response = await fetch(tilesetUrl, fetchOptions);
     const tilesetJson = await response.json();
+    const rootNodeUrl = getRootNodeUrl(tilesetUrl);
+    tilesetJson.root = await fetch(rootNodeUrl, fetchOptions).then(resp => resp.json());
+    tilesetJson.refine = 'REPLACE';
 
-    const tileset3d = new I3STileset(tilesetJson, tilesetUrl, {
-      onTileLoad: tile => this.props.onTileLoad(tile),
-      onTileUnload: tile => this.props.onTileUnload(tile)
+    const tileset3d = new I3STileset3D(tilesetJson, tilesetUrl, {
+      basePath: tilesetUrl,
+      onTileLoad: tile => this._onTileLoad(tile),
+      onTileUnload: tile => this._onTileUnload(tile)
     });
 
     this.setState({
@@ -56,7 +65,16 @@ export default class Tile3DLayer extends CompositeLayer {
 
     if (tileset3d) {
       this.props.onTilesetLoad(tileset3d);
+      await this._updateTileset(tileset3d);
     }
+  }
+
+  _onTileLoad() {
+    this._updateLayerMap();
+  }
+
+  _onTileUnload() {
+    this._updateLayerMap();
   }
 
   async _updateTileset(tileset3d) {
@@ -66,7 +84,7 @@ export default class Tile3DLayer extends CompositeLayer {
     }
 
     // TODO use a valid frameState
-    const frameState = {viewport};
+    const frameState = getFrameState(viewport, Date.now());
     await tileset3d.update(frameState);
     this._updateLayerMap();
   }
@@ -78,7 +96,7 @@ export default class Tile3DLayer extends CompositeLayer {
     const {selectedTiles} = tileset3d;
     if (selectedTiles) {
       const tilesWithoutLayer = Object.values(selectedTiles).filter(
-        tile => !layerMap[tile.id] && tile.attributes
+        tile => !layerMap[tile.id] && tile.content
       );
 
       for (const tile of tilesWithoutLayer) {
@@ -89,53 +107,39 @@ export default class Tile3DLayer extends CompositeLayer {
       }
     }
 
-    // only maintain certain layers for performance
-    this._deleteLayers();
-
     // update layer visibility
     this._updateLayers();
-  }
-
-  _deleteLayers() {
-    const {layerMap} = this.state;
-    const layerValues = Object.values(layerMap);
-    if (layerValues.length >= MAX_LAYERS) {
-      const orders = layerValues.sort((l1, l2) => {
-        return l1.tile._priority - l2.tile._priority;
-      });
-      delete layerMap[orders[0].id];
-    }
   }
 
   // Grab only those layers who were selected this frame.
   _updateLayers() {
     const {layerMap, tileset3d} = this.state;
     const selectedTiles = tileset3d && tileset3d.selectedTiles;
-    const layers = [];
 
     const tileIds = Object.keys(layerMap);
     for (let i = 0; i < tileIds.length; i++) {
       const tileId = tileIds[i];
+      const selected = selectedTiles.find(tile => tile.id === tileId);
       let layer = layerMap[tileId].layer;
-      if (!selectedTiles[tileId] && layer.props && layer.props.visible) {
+      if (!selected && layer.props && layer.props.visible) {
         // Still has GPU resource but visibility is turned off so turn it back on so we can render it.
         layer = layer.clone({visible: false});
         layerMap[tileId].layer = layer;
-      } else if (selectedTiles[tileId] && layer.props) {
+      } else if (selected && layer.props) {
         // Still has GPU resource but visibility is turned off so turn it back on so we can render it.
         if (!layer.props.visible) {
           layer = layer.clone({visible: true});
         }
         layerMap[tileId].layer = layer;
-        layers.push(layer);
       }
     }
 
-    this.setState({layers});
+    this.setState({layers: Object.values(layerMap).map(layer => layer.layer)});
   }
 
   _create3DTileLayer(tile) {
-    const {attributes, matrix, cartographicOrigin, texture} = tile;
+    const content = tile.content;
+    const {attributes, matrix, cartographicOrigin, texture} = content;
     const positions = new Float32Array(attributes.position.value.length);
     for (let i = 0; i < positions.length; i += 3) {
       scratchOffset.copy(matrix.transform(attributes.position.value.subarray(i, i + 3)));

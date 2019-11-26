@@ -29,7 +29,6 @@ export class I3STileNode {
 export default class I3STileTree {
   constructor() {
     this.children = [];
-    this._cache = {};
   }
 
   appendNode(node) {
@@ -39,7 +38,6 @@ export default class I3STileTree {
     }
 
     const newNode = new I3STileNode(node);
-    this._cache[newNode.id] = newNode;
 
     const parentNode = this.searchNode(node.parentNode && node.parentNode.id);
     if (!node.parentNode) {

@@ -1,7 +1,6 @@
 /* global setTimeout */
 import I3STileTree from './i3s-tile-tree';
 import {lodJudge} from './utils';
-import {fetchTileNode} from './i3s-tileset';
 
 export default class I3STraverser {
   constructor(options) {
@@ -58,4 +57,9 @@ export default class I3STraverser {
     this.results.selectedTiles = {};
     await this._traverse(root, frameState, options);
   }
+}
+
+async function fetchTileNode(baseUrl, nodeRef) {
+  const nodeUrl = `${baseUrl}/${nodeRef}`;
+  return await fetch(nodeUrl).then(resp => resp.json());
 }

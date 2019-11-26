@@ -42,6 +42,10 @@ export default class RequestScheduler {
     return promise;
   }
 
+  isRequested(handle) {
+    return this.requestQueue.find(r => r.handle.id === handle.id);
+  };
+
   // Called by an application to mark that it is actively making a request
   startRequest(handle) {
     this.activeRequestCount++;
