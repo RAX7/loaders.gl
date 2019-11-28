@@ -23,7 +23,6 @@ export default {
   parse,
   binary: true,
   options: {
-    i3s: {
-    }
+    i3s: {}
   }
 };

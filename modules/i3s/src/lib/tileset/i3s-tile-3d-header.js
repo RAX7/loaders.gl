@@ -1,15 +1,13 @@
-// This file is derived from the Cesium code base under Apache 2 license
-// See LICENSE.md and https://github.com/AnalyticalGraphicsInc/cesium/blob/master/LICENSE.md
-// import {TILE3D_REFINEMENT, TILE3D_OPTIMIZATION_HINT} from '../constants';
+/* global fetch */
 import {Vector3, Matrix4} from 'math.gl';
 import {CullingVolume, Intersect, Plane} from '@math.gl/culling';
 import {Ellipsoid} from '@math.gl/geospatial';
 
-import {getScreenSize} from './utils';
+import {createBoundingVolume} from '@loaders.gl/3d-tiles';
 
-import {TILE3D_REFINEMENT, TILE3D_CONTENT_STATE, TILE3D_OPTIMIZATION_HINT} from '../constants';
+import {getScreenSize} from '../utils/lod';
 import assert from '../utils/assert';
-import {createBoundingVolume} from './helpers/bounding-volume';
+import {TILE3D_REFINEMENT, TILE3D_CONTENT_STATE, TILE3D_OPTIMIZATION_HINT} from '../constants';
 import {parseI3SNodeGeometry} from '../parsers/parse-i3s-node-geometry';
 
 const scratchCenter = new Vector3();
@@ -25,11 +23,6 @@ function updatePriority(tile) {
     return -1;
   }
   return Math.max(1e7 - tile._priority, 0) || 0;
-}
-
-function fog(distanceToCamera, density) {
-  const scalar = distanceToCamera * density;
-  return 1.0 - Math.exp(-(scalar * scalar));
 }
 
 function computeVisibilityWithPlaneMask(cullingVolume, boundingVolume, parentPlaneMask) {
@@ -77,12 +70,10 @@ function computeVisibilityWithPlaneMask(cullingVolume, boundingVolume, parentPla
   return mask;
 }
 
-const scratchBoundingSphere = new Vector3();
-
 // A Tile3DHeader represents a tile as Tileset3D. When a tile is first created, its content is not loaded;
 // the content is loaded on-demand when needed based on the view.
 // Do not construct this directly, instead access tiles through {@link Tileset3D#tileVisible}.
-export default class Tile3DHeader {
+export default class I3sTile3dHeader {
   constructor(tileset, header, parentHeader, basePath) {
     // assert(tileset._asset);
     assert(typeof header === 'object');
@@ -117,7 +108,7 @@ export default class Tile3DHeader {
     // @type {TILE3D_OPTIMIZATION_HINT}
     this._optimChildrenWithinParent = TILE3D_OPTIMIZATION_HINT.NOT_COMPUTED;
 
-    this._initializeRenderingState();
+    this._initializeRenderingState(header);
 
     Object.seal(this);
   }
@@ -154,6 +145,10 @@ export default class Tile3DHeader {
     return this._visible && this._inRequestVolume;
   }
 
+  get hasChildren() {
+    return this.children.length > 0 || (this._header.children && this._header.children.length > 0);
+  }
+
   // The tile's content.  This represents the actual tile's payload,
   // not the content's metadata in the tileset JSON file.
   get content() {
@@ -175,8 +170,7 @@ export default class Tile3DHeader {
   // content is ready or if it has expired content this renders while new content loads; otherwise,
   get contentAvailable() {
     return (
-      (this.contentReady && this.hasRenderContent) ||
-      (this._expiredContent && !this.contentFailed)
+      (this.contentReady && this.hasRenderContent) || (this._expiredContent && !this.contentFailed)
     );
   }
 
@@ -244,23 +238,13 @@ export default class Tile3DHeader {
 
     const cancelled = !(await this.tileset._requestScheduler.scheduleRequest(this, updatePriority));
 
-    // for debugging
-    if (!this._tileset._map[this.id]) {
-      this._tileset._map[this.id] = {
-        load: 0,
-        unload: 0
-      };
-    }
-
     if (cancelled) {
-      this._tileset._map[this.id].unload += 1;
       this._contentState = TILE3D_CONTENT_STATE.UNLOADED;
       return false;
     }
 
     try {
       this.tileset._requestScheduler.startRequest(this);
-      this._tileset._map[this.id].load += 1;
       await this._loadData();
       this.tileset._requestScheduler.endRequest(this);
       this._contentState = TILE3D_CONTENT_STATE.READY;
@@ -292,7 +276,9 @@ export default class Tile3DHeader {
     this._content.featureData = featureData;
 
     if (this._header.textureData) {
-      this._content.texture = `${this._basePath}/nodes/${this.id}/${this._header.textureData[0].href}`;
+      this._content.texture = `${this._basePath}/nodes/${this.id}/${
+        this._header.textureData[0].href
+      }`;
     }
 
     parseI3SNodeGeometry(geometryBuffer, this);
@@ -306,7 +292,6 @@ export default class Tile3DHeader {
     if (this._content && this._content.destroy) {
       this._content.destroy();
     }
-    this._tileset._map[this.id].unload += 1;
     this._content = null;
     this._contentState = TILE3D_CONTENT_STATE.UNLOADED;
     return true;
@@ -339,15 +324,8 @@ export default class Tile3DHeader {
   }
 
   // Update whether the tile has expired.
-  updateExpiration() {
-    // if (this.expireDate && this.contentReady && !this.hasEmptyContent) {
-    //   const now = Date.now();
-    //   if (Date.lessThan(this.expireDate, now)) {
-    //     this._contentState = TILE3D_CONTENT_STATE.EXPIRED;
-    //     this._expiredContent = this._content;
-    //   }
-    // }
-  }
+  // TODO
+  updateExpiration() {}
 
   // Determines whether the tile's bounding volume intersects the culling volume.
   // @param {FrameState} frameState The frame state.
@@ -470,7 +448,7 @@ export default class Tile3DHeader {
   }
 
   // TODO - remove anything not related to basic visibility detection
-  _initializeRenderingState() {
+  _initializeRenderingState(header) {
     // Members this are updated every frame for tree traversal and rendering optimizations:
     this._distanceToCamera = 0;
     this._centerZDepth = 0;
@@ -479,7 +457,7 @@ export default class Tile3DHeader {
     this._visible = false;
     this._inRequestVolume = false;
 
-    this._depth = 0;
+    this._depth = header.level;
     this._stackLength = 0;
     this._selectionDepth = 0;
 
@@ -488,6 +466,7 @@ export default class Tile3DHeader {
     this._visitedFrame = 0;
     this._selectedFrame = 0;
     this._requestedFrame = 0;
+
     this._refines = false;
     this._shouldSelect = false;
     this._priority = 0.0;
@@ -495,15 +474,15 @@ export default class Tile3DHeader {
 
   _getRefine(refine) {
     switch (refine) {
-    case 'REPLACE':
-    case 'replace':
-      return TILE3D_REFINEMENT.REPLACE;
-    case 'ADD':
-    case 'add':
-      return TILE3D_REFINEMENT.ADD;
-    default:
-      // Inherit from parent tile if omitted.
-      return this.parent ? this.parent.refine : TILE3D_REFINEMENT.REPLACE;
+      case 'REPLACE':
+      case 'replace':
+        return TILE3D_REFINEMENT.REPLACE;
+      case 'ADD':
+      case 'add':
+        return TILE3D_REFINEMENT.ADD;
+      default:
+        // Inherit from parent tile if omitted.
+        return this.parent ? this.parent.refine : TILE3D_REFINEMENT.REPLACE;
     }
   }
 

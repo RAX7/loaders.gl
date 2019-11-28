@@ -222,6 +222,12 @@ export default class Tile3DHeader {
     return this._header.extras;
   }
 
+  get hasChildren() {
+    // this.children are Tile3DHeader objects with content fetched from server
+    // this._header.children are children of this tile which are not yet fetched
+    return this.children.length > 0 || (this._header.children && this.children.length > 0);
+  }
+
   // Get the tile's screen space error.
   getScreenSpaceError(frameState, useParentGeometricError) {
     const tileset = this._tileset;
@@ -269,7 +275,7 @@ export default class Tile3DHeader {
   // Requests the tile's content.
   // The request may not be made if the Request Scheduler can't prioritize it.
   // eslint-disable-next-line max-statements
-  async loadContent() {
+  async loadContent(frameState) {
     if (this.hasEmptyContent) {
       return false;
     }
@@ -473,7 +479,9 @@ export default class Tile3DHeader {
   // @returns {Number} The distance, in meters, or zero if the camera is inside the bounding volume.
   distanceToTile(frameState) {
     const boundingVolume = this._boundingVolume;
-    return Math.sqrt(Math.max(boundingVolume.distanceSquaredTo(frameState.camera.position), 0.0000001));
+    return Math.sqrt(
+      Math.max(boundingVolume.distanceSquaredTo(frameState.camera.position), 0.0000001)
+    );
   }
 
   // Computes the tile's camera-space z-depth.
@@ -588,7 +596,7 @@ export default class Tile3DHeader {
       this.hasEmptyContent = false;
       this.contentState = TILE3D_CONTENT_STATE.UNLOADED;
       this.fullUri = `${this._basePath}/${this.contentUri}`;
-      // this.serverKey = RequestScheduler.getServerKey(contentResource.getUrlComponent());
+      this.id = this.fullUri;
     }
   }
 

@@ -4,7 +4,7 @@ import {Vector3} from 'math.gl';
 import {COORDINATE_SYSTEM, CompositeLayer} from '@deck.gl/core';
 import {SimpleMeshLayer} from '@deck.gl/mesh-layers';
 
-import {I3STileset, I3STileset3D} from '@loaders.gl/i3s';
+import {I3STileset3D} from '@loaders.gl/i3s';
 import {Geometry} from '@luma.gl/core';
 import GL from '@luma.gl/constants';
 import {getFrameState} from './get-frame-state';
@@ -41,7 +41,7 @@ export default class Tile3DLayer extends CompositeLayer {
     }
 
     if (changeFlags.viewportChanged) {
-      await this._updateTileset(this.state.tileset3d);
+      this._updateTileset(this.state.tileset3d);
     }
   }
 
@@ -65,16 +65,17 @@ export default class Tile3DLayer extends CompositeLayer {
 
     if (tileset3d) {
       this.props.onTilesetLoad(tileset3d);
-      await this._updateTileset(tileset3d);
     }
   }
 
-  _onTileLoad() {
+  _onTileLoad(tile) {
     this._updateLayerMap();
+    this._updateTileset(this.state.tileset3d);
   }
 
-  _onTileUnload() {
+  _onTileUnload(tile) {
     this._updateLayerMap();
+    this._updateTileset(this.state.tileset3d);
   }
 
   async _updateTileset(tileset3d) {

@@ -3,7 +3,7 @@ import {getDistanceScales} from 'viewport-mercator-project';
 
 /* eslint-disable max-statements */
 export function lodJudge(tile, frameState) {
-  let viewport = frameState.viewport;
+  const viewport = frameState.viewport;
   const distanceScales = getDistanceScales(viewport);
 
   const mbsLat = tile._mbs[1];
@@ -73,7 +73,9 @@ export function getScreenSize(tile, frameState) {
   const mbsR = tile._mbs[3];
 
   const mbsCenter = [mbsLon, mbsLat];
-  const cameraPositionCartographic = frameState.viewport.unprojectPosition(frameState.viewport.cameraPosition);
+  const cameraPositionCartographic = frameState.viewport.unprojectPosition(
+    frameState.viewport.cameraPosition
+  );
 
   const mbsToCameraDistanceInMeters = getDistanceFromLatLon(cameraPositionCartographic, mbsCenter);
   const dSquared = mbsToCameraDistanceInMeters * mbsToCameraDistanceInMeters - mbsR * mbsR;
