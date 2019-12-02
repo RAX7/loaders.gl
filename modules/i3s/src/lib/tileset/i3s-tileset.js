@@ -13,7 +13,7 @@ import {
   _RequestScheduler as RequestScheduler,
   calculateTransformProps
 } from '@loaders.gl/3d-tiles';
-import I3sTile3dHeader from './i3s-tile-3d-header';
+import I3STileHeader from './i3s-tile-header';
 import Tileset3DTraverser from './i3s-tileset-traverser';
 
 // Tracked Stats
@@ -75,7 +75,7 @@ const DEFAULT_OPTIONS = {
   onTileLoadFail: (tile, message, url) => {}
 };
 
-export default class I3sTileset3d {
+export default class I3STileset {
   // eslint-disable-next-line max-statements
   constructor(json, url, options = {}) {
     assert(json);
@@ -277,7 +277,7 @@ export default class I3sTileset3d {
   _initializeTileHeaders(tilesetJson, parentTileHeader, basePath) {
     // A tileset JSON file referenced from a tile may exist in a different directory than the root tileset.
     // Get the basePath relative to the external tileset.
-    const rootTile = new I3sTile3dHeader(this, tilesetJson.root, parentTileHeader, basePath); // resource
+    const rootTile = new I3STileHeader(this, tilesetJson.root, parentTileHeader, basePath); // resource
 
     if (parentTileHeader) {
       parentTileHeader.children.push(rootTile);

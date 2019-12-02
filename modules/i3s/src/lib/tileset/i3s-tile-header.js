@@ -73,7 +73,7 @@ function computeVisibilityWithPlaneMask(cullingVolume, boundingVolume, parentPla
 // A Tile3DHeader represents a tile as Tileset3D. When a tile is first created, its content is not loaded;
 // the content is loaded on-demand when needed based on the view.
 // Do not construct this directly, instead access tiles through {@link Tileset3D#tileVisible}.
-export default class I3sTile3dHeader {
+export default class I3STileHeader {
   constructor(tileset, header, parentHeader, basePath) {
     // assert(tileset._asset);
     assert(typeof header === 'object');

@@ -4,7 +4,7 @@ import {Vector3} from 'math.gl';
 import {COORDINATE_SYSTEM, CompositeLayer} from '@deck.gl/core';
 import {SimpleMeshLayer} from '@deck.gl/mesh-layers';
 
-import {I3STileset3D} from '@loaders.gl/i3s';
+import {I3STileset} from '@loaders.gl/i3s';
 import {Geometry} from '@luma.gl/core';
 import GL from '@luma.gl/constants';
 import {getFrameState} from './get-frame-state';
@@ -52,7 +52,7 @@ export default class Tile3DLayer extends CompositeLayer {
     tilesetJson.root = await fetch(rootNodeUrl, fetchOptions).then(resp => resp.json());
     tilesetJson.refine = 'REPLACE';
 
-    const tileset3d = new I3STileset3D(tilesetJson, tilesetUrl, {
+    const tileset3d = new I3STileset(tilesetJson, tilesetUrl, {
       basePath: tilesetUrl,
       onTileLoad: tile => this._onTileLoad(tile),
       onTileUnload: tile => this._onTileUnload(tile)
