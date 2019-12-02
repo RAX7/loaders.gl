@@ -19,7 +19,7 @@ const DEFAULT_PROPS = {
 
 // The request scheduler does not actually issue requests, it just lets apps know
 // when the request can be issued without overwhelming the server.
-// The main use case is to let the app  reprioritize or cancel requests if
+// The main use case is to let the app reprioritize or cancel requests if
 //  circumstances change before the request can be scheduled.
 //
 // TODO - Track requests globally, across multiple servers

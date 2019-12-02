@@ -7,7 +7,7 @@ import {createBoundingVolume} from '@loaders.gl/3d-tiles';
 
 import {getScreenSize} from '../utils/lod';
 import assert from '../utils/assert';
-import {TILE3D_REFINEMENT, TILE3D_CONTENT_STATE, TILE3D_OPTIMIZATION_HINT} from '../constants';
+import {TILE3D_REFINEMENT, TILE3D_CONTENT_STATE} from '../constants';
 import {parseI3SNodeGeometry} from '../parsers/parse-i3s-node-geometry';
 
 const scratchCenter = new Vector3();
@@ -103,10 +103,6 @@ export default class I3sTile3dHeader {
     this._initializeBoundingVolumes(header);
     this._initializeContent(header);
     this._initializeCache(header);
-
-    // Marks whether the tile's children bounds are fully contained within the tile's bounds
-    // @type {TILE3D_OPTIMIZATION_HINT}
-    this._optimChildrenWithinParent = TILE3D_OPTIMIZATION_HINT.NOT_COMPUTED;
 
     this._initializeRenderingState(header);
 

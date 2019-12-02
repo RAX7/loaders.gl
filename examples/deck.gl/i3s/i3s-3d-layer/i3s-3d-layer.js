@@ -78,7 +78,7 @@ export default class Tile3DLayer extends CompositeLayer {
     this._updateTileset(this.state.tileset3d);
   }
 
-  async _updateTileset(tileset3d) {
+  _updateTileset(tileset3d) {
     const {timeline, viewport} = this.context;
     if (!timeline || !viewport || !tileset3d) {
       return;
@@ -86,7 +86,7 @@ export default class Tile3DLayer extends CompositeLayer {
 
     // TODO use a valid frameState
     const frameState = getFrameState(viewport, Date.now());
-    await tileset3d.update(frameState);
+    tileset3d.update(frameState);
     this._updateLayerMap();
   }
 
