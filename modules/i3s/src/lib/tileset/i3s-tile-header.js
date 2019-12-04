@@ -22,6 +22,7 @@ function updatePriority(tile) {
   if (tile._contentState === TILE3D_CONTENT_STATE.UNLOADED) {
     return -1;
   }
+
   return Math.max(1e7 - tile._priority, 0) || 0;
 }
 
@@ -310,9 +311,8 @@ export default class I3STileHeader {
     this._updateTransform(parentTransform);
     this._distanceToCamera = this.distanceToTile(frameState);
     this._screenSpaceError = this.getScreenSpaceError(frameState, false);
-    this._priority = this.lodMaxError;
-
     this._visibilityPlaneMask = this.visibility(frameState, parentVisibilityPlaneMask); // Use parent's plane mask to speed up visibility test
+    this._priority = this.lodMaxError;
     this._visible = this._visibilityPlaneMask !== CullingVolume.MASK_OUTSIDE;
     this._inRequestVolume = this.insideViewerRequestVolume(frameState);
 

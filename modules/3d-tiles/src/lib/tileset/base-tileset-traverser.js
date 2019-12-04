@@ -117,8 +117,8 @@ export default class BaseTilesetTraverser {
       // 3. update cache, most recent touched tiles have higher priority to be fetched from server
       this.touchTile(tile, frameState);
 
-      // 4. update tile refine prop
-      tile._refines = refines;
+      // 4. update tile refine prop and parent refinment status to trickle down to the descendants
+      tile._refines = refines && parentRefines;
     }
   }
 

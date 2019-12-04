@@ -43,7 +43,7 @@ export function lodJudge(tile, frameState) {
   // In this sense a value of 0 means you should always load it's children,
   // or if it's a leaf node, you should always display it.
   const screenSize = getScreenSize(tile, frameState);
-  if (!tile._header.children || screenSize <= tile.lodMaxError - 100) {
+  if (!tile._header.children || screenSize <= tile.lodMaxError) {
     return 'DRAW';
   } else if (tile._header.children) {
     return 'DIG';

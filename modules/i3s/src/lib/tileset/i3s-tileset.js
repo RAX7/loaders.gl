@@ -94,6 +94,7 @@ export default class I3STileset {
 
     // HELPER OBJECTS
     this._requestScheduler = new RequestScheduler({
+      maxRequests: 18,
       throttleRequests: this.options.throttleRequests
     });
     this._traverser = new Tileset3DTraverser({
@@ -206,7 +207,8 @@ export default class I3STileset {
     this._requestedTiles = Object.values(this._traverser.requestedTiles);
     this._emptyTiles = Object.values(this._traverser.emptyTiles);
 
-    const requestedTiles = this._requestedTiles;
+    const requestedTiles = this._requestedTiles.sort((t1, t2) => this._traverser.selectedTiles[t1.id] ? -1 : 1);
+
     // Sort requests by priority before making any requests.
     // This makes it less likely this requests will be cancelled after being issued.
     // requestedTiles.sort((a, b) => a._priority - b._priority);
