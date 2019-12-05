@@ -1,5 +1,5 @@
 import ManagedArray from '../utils/managed-array';
-import {TILE3D_REFINEMENT} from '../constants';
+import {TILE3D_REFINEMENT, TILE3D_CONTENT_STATE} from '../constants';
 import assert from '../utils/assert';
 
 export const DEFAULT_OPTIONS = {
@@ -94,7 +94,7 @@ export default class BaseTilesetTraverser {
 
       if (!tile.hasRenderContent) {
         this.emptyTiles[tile.id] = tile;
-        this.loadTile(tile);
+        this.loadTile(tile, frameState);
         if (stoppedRefining) {
           this.selectTile(tile, frameState);
         }
@@ -233,10 +233,12 @@ export default class BaseTilesetTraverser {
 
   // tile to load from server
   loadTile(tile, frameState) {
-    if (tile.hasUnloadedContent || tile.contentExpired) {
-      tile._requestedFrame = frameState.frameNumber;
-      tile._priority = this.getPriority(tile);
-      this.requestedTiles[tile.id] = tile;
+    if (tile._contentState === TILE3D_CONTENT_STATE.UNLOADED) {
+      if (tile.hasUnloadedContent || tile.contentExpired) {
+        tile._requestedFrame = frameState.frameNumber;
+        tile._priority = this.getPriority(tile);
+        this.requestedTiles[tile.id] = tile;
+      }
     }
   }
 

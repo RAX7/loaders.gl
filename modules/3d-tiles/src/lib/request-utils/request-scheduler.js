@@ -52,10 +52,19 @@ export default class RequestScheduler {
       return Promise.resolve(handle);
     }
 
+    // dedupe
+    const existingReq = this.requestQueue.find(req => req.handle === handle);
+    if (existingReq) {
+      return existingReq.promise;
+    }
+
+    let request = null;
     const promise = new Promise((resolve, reject) => {
-      this.requestQueue.push({handle, callback, resolve, reject});
+      request = {handle, callback, resolve, reject};
+      return request;
     });
 
+    this.requestQueue.push({promise, ...request});
     this._issueNewRequests();
     return promise;
   }

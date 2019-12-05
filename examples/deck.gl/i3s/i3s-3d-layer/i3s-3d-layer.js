@@ -1,4 +1,4 @@
-  /* global fetch */
+/* global fetch */
 import {Vector3} from 'math.gl';
 
 import {COORDINATE_SYSTEM, CompositeLayer} from '@deck.gl/core';
@@ -133,7 +133,7 @@ export default class Tile3DLayer extends CompositeLayer {
       }
     }
 
-    console.log(selectedTiles.map(tile => `node ${tile.id}: ${tile._header.level}`));
+    // console.log(selectedTiles.map(tile => `node ${tile.id}: ${tile._header.level}`));
 
     this.setState({layers: Object.values(layerMap).map(layer => layer.layer)});
   }

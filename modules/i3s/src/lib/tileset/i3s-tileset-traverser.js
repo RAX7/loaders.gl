@@ -2,7 +2,7 @@
 import {_BaseTilesetTraverser as BaseTilesetTraverser} from '@loaders.gl/3d-tiles';
 
 import {lodJudge} from '../utils/lod';
-import I3sTileHeader from './i3s-tile-header';
+import I3STileHeader from './i3s-tile-header';
 
 export default class I3STilesetTraverser extends BaseTilesetTraverser {
   constructor(options) {
@@ -31,7 +31,7 @@ export default class I3STilesetTraverser extends BaseTilesetTraverser {
         const header = await fetchTileNode(basePath, child.id);
 
         // after child tile is fetched
-        childTile = new I3sTileHeader(tile.tileset, header, tile, basePath);
+        childTile = new I3STileHeader(tile.tileset, header, tile, basePath);
         tile.children.push(childTile);
         this._tileHeaderMap[child.id] = childTile;
       }
